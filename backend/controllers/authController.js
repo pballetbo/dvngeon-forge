@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
+const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const regexContrasenya = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 exports.register = async function (req, res) {
   const { username, email, password, rol } = req.body;
@@ -22,6 +24,15 @@ exports.register = async function (req, res) {
     return res
       .status(400)
       .json({ message: "El rol ha de ser 'jugador' o 'gamemaster'" });
+  }
+  if (!regexEmail.test(email)) {
+    return res.status(400).json({ message: "Format d'email invàlid" });
+  }
+  if (!regexContrasenya.test(password)) {
+    return res.status(400).json({
+      message:
+        "La contrasenya ha de tenir almenys 8 caràcters, lletres i números",
+    });
   }
   try {
     const passwordSegura = await bcrypt.hash(password, 10);
