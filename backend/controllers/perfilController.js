@@ -8,7 +8,6 @@ const validTables = {
   jocs: "perfil_joc",
   modalitats: "perfil_modalitat",
 };
-//Añadir Delete?
 
 exports.completarPerfil = async function (req, res) {
   const {
