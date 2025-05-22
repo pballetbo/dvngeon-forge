@@ -2,12 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const app = express();
+const authRoutes = require("./routes/authRoutes");
+const perfilRoutes = require("./routes/perfilRoutes");
 
 app.use(cors());
 app.use(bodyParser.json());
 
-const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+app.use("/api/perfil", perfilRoutes);
 
 app.get("/", function (req, res) {
   res.send("Backend de Dvngeon Forge funcionando!");
