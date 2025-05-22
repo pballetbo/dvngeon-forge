@@ -1,12 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const authRoutes = require("./routes/authRoutes");
+const perfilRoutes = require("./routes/perfilRoutes");
 
 app.use(cors());
 app.use(express.json());
 
-const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+app.use("/api/perfil", perfilRoutes);
 
 app.get("/", function (req, res) {
   res.send("Backend de Dvngeon Forge funcionando!");
