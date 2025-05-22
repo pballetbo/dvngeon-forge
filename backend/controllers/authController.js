@@ -6,6 +6,7 @@ const regexContrasenya = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 exports.register = async function (req, res) {
   const { username, email, password, rol } = req.body;
+  let connection;
 
   if (!email) {
     return res.status(400).json({ message: "Has d'informar l'email!" });
@@ -35,25 +36,57 @@ exports.register = async function (req, res) {
     });
   }
   try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
     const passwordSegura = await bcrypt.hash(password, 10);
-    const [resultat] = await pool.query(
+    const [usuariResultat] = await connection.query(
       "INSERT INTO usuaris (username, email, password, rol) VALUES (?, ?, ?, ?)",
       [username, email, passwordSegura, rol]
     );
 
+    const [perfilResultat] = await connection.query(
+      "INSERT INTO perfil (usuari_id) VALUES (?)",
+      [usuariResultat.insertId]
+    );
+
+    await connection.query("UPDATE usuaris SET perfil_id = ? WHERE id = ?", [
+      perfilResultat.insertId,
+      usuariResultat.insertId,
+    ]);
+
+    await connection.commit();
+
+    const token = jwt.sign(
+      { id: usuariResultat.insertId, rol },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRATION,
+      }
+    );
+
     res.status(201).json({
-      id: resultat.insertId,
-      missatge: "Usuari registrat correctament!",
+      id: usuariResultat.insertId,
+      token,
+      missatge: "Registre correcte!",
     });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+      connection.release();
+    }
     if (error.code === "ER_DUP_ENTRY") {
       if (error.sqlMessage.includes("email")) {
-        res.status(400).json({ error: "L'email ja existeix!" });
+        res.status(409).json({ error: "L'email ja existeix!" });
       } else if (error.sqlMessage.includes("username")) {
-        res.status(400).json({ error: "El nom d'usuari ja existeix!" });
+        res.status(409).json({ error: "El nom d'usuari ja existeix!" });
       }
     } else {
       res.status(500).json({ error: "Error al registrar l'usuari!" });
+    }
+  } finally {
+    if (connection) {
+      connection.release();
     }
   }
 };
